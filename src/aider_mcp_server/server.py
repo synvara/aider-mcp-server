@@ -19,6 +19,50 @@ from aider_mcp_server.atoms.tools.aider_list_models import list_models
 # Configure logging
 logger = get_logger(__name__)
 
+# Define MCP tools
+AIDER_AI_CODE_TOOL = Tool(
+    name="aider_ai_code",
+    description="Run Aider to perform AI coding tasks based on the provided prompt and files",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "ai_coding_prompt": {
+                "type": "string",
+                "description": "The prompt for the AI to execute",
+            },
+            "relative_editable_files": {
+                "type": "array",
+                "description": "LIST of relative paths to files that can be edited",
+                "items": {"type": "string"},
+            },
+            "relative_readonly_files": {
+                "type": "array",
+                "description": "LIST of relative paths to files that can be read but not edited, add files that are not editable but useful for context",
+                "items": {"type": "string"},
+            },
+            "model": {
+                "type": "string",
+                "description": "The primary AI model Aider should use for generating code, leave blank unless model is specified in the request",
+            },
+        },
+        "required": ["ai_coding_prompt", "relative_editable_files"],
+    },
+)
+
+LIST_MODELS_TOOL = Tool(
+    name="list_models",
+    description="List available models that match the provided substring",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "substring": {
+                "type": "string",
+                "description": "Substring to match against available models",
+            }
+        },
+    },
+)
+
 
 def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
     """
@@ -35,7 +79,7 @@ def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
         # Make sure the directory exists
         if not os.path.isdir(directory):
             return False, f"Directory does not exist: {directory}"
-            
+
         # Use the git command with -C option to specify the working directory
         # This way we don't need to change our current directory
         result = subprocess.run(
@@ -57,7 +101,10 @@ def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
 
 
 def process_aider_ai_code_request(
-    params: Dict[str, Any], editor_model: str, architect_model: Optional[str], current_working_dir: str
+    params: Dict[str, Any],
+    editor_model: str,
+    architect_model: Optional[str],
+    current_working_dir: str,
 ) -> Dict[str, Any]:
     """
     Process an aider_ai_code request.
@@ -97,9 +144,9 @@ def process_aider_ai_code_request(
         else (architect_model if use_architect else editor_model)
     )
 
-    # Use the passed-in current_working_dir parameter 
+    # Use the passed-in current_working_dir parameter
     logger.info(f"Using working directory for code_with_aider: {current_working_dir}")
-    
+
     result_json = code_with_aider(
         ai_coding_prompt=ai_coding_prompt,
         relative_editable_files=relative_editable_files,
@@ -198,7 +245,9 @@ def handle_request(
 
         # Route to the appropriate handler based on request type
         if request_type == "aider_ai_code":
-            return process_aider_ai_code_request(params, editor_model, architect_model, current_working_dir)
+            return process_aider_ai_code_request(
+                params, editor_model, architect_model, current_working_dir
+            )
 
         elif request_type == "list_models":
             return process_list_models_request(params)
@@ -214,51 +263,6 @@ def handle_request(
             f"Critical Error: Unhandled exception during request processing: {str(e)}"
         )
         return {"error": f"Internal server error: {str(e)}"}
-
-
-# Define MCP tools
-AIDER_AI_CODE_TOOL = Tool(
-    name="aider_ai_code",
-    description="Run Aider to perform AI coding tasks based on the provided prompt and files",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "ai_coding_prompt": {
-                "type": "string",
-                "description": "The prompt for the AI to execute",
-            },
-            "relative_editable_files": {
-                "type": "array",
-                "description": "LIST of relative paths to files that can be edited",
-                "items": {"type": "string"},
-            },
-            "relative_readonly_files": {
-                "type": "array",
-                "description": "LIST of relative paths to files that can be read but not edited, add files that are not editable but useful for context",
-                "items": {"type": "string"},
-            },
-            "model": {
-                "type": "string",
-                "description": "The primary AI model Aider should use for generating code, leave blank unless model is specified in the request",
-            },
-        },
-        "required": ["ai_coding_prompt", "relative_editable_files"],
-    },
-)
-
-LIST_MODELS_TOOL = Tool(
-    name="list_models",
-    description="List available models that match the provided substring",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "substring": {
-                "type": "string",
-                "description": "Substring to match against available models",
-            }
-        },
-    },
-)
 
 
 async def serve(
