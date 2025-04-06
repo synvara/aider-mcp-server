@@ -121,6 +121,21 @@ def process_aider_ai_code_request(
     ai_coding_prompt = params.get("ai_coding_prompt", "")
     relative_editable_files = params.get("relative_editable_files", [])
     relative_readonly_files = params.get("relative_readonly_files", [])
+
+    # Ensure relative_editable_files is a list
+    if isinstance(relative_editable_files, str):
+        logger.info(
+            f"Converting single editable file string to list: {relative_editable_files}"
+        )
+        relative_editable_files = [relative_editable_files]
+
+    # Ensure relative_readonly_files is a list
+    if isinstance(relative_readonly_files, str):
+        logger.info(
+            f"Converting single readonly file string to list: {relative_readonly_files}"
+        )
+        relative_readonly_files = [relative_readonly_files]
+
     # Get the model from request parameters if provided
     request_model = params.get("model")
 
