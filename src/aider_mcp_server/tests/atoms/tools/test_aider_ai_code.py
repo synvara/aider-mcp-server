@@ -3,13 +3,31 @@ import json
 import tempfile
 import pytest
 import shutil
+import subprocess
 from aider_mcp_server.atoms.tools.aider_ai_code import code_with_aider
 
 @pytest.fixture
 def temp_dir():
-    """Create a temporary directory for testing."""
+    """Create a temporary directory with an initialized Git repository for testing."""
     tmp_dir = tempfile.mkdtemp()
+    
+    # Initialize git repository in the temp directory
+    subprocess.run(["git", "init"], cwd=tmp_dir, capture_output=True, text=True, check=True)
+    
+    # Configure git user for the repository
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=tmp_dir, capture_output=True, text=True, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_dir, capture_output=True, text=True, check=True)
+    
+    # Create and commit an initial file to have a valid git history
+    with open(os.path.join(tmp_dir, "README.md"), "w") as f:
+        f.write("# Test Repository\nThis is a test repository for Aider MCP Server tests.")
+    
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_dir, capture_output=True, text=True, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=tmp_dir, capture_output=True, text=True, check=True)
+    
     yield tmp_dir
+    
+    # Clean up
     shutil.rmtree(tmp_dir)
 
 def test_addition(temp_dir):
@@ -21,11 +39,11 @@ def test_addition(temp_dir):
     
     prompt = "Implement a function add(a, b) that returns the sum of a and b in the math_add.py file."
     
-    # Run code_with_aider
+    # Run code_with_aider with working_dir
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        use_git=False  # Don't use git in tests
+        working_dir=temp_dir  # Pass the temp directory as working_dir
     )
     
     # Parse the JSON result
@@ -57,11 +75,11 @@ def test_subtraction(temp_dir):
     
     prompt = "Implement a function subtract(a, b) that returns a minus b in the math_subtract.py file."
     
-    # Run code_with_aider
+    # Run code_with_aider with working_dir
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        use_git=False  # Don't use git in tests
+        working_dir=temp_dir  # Pass the temp directory as working_dir
     )
     
     # Parse the JSON result
@@ -93,11 +111,11 @@ def test_multiplication(temp_dir):
     
     prompt = "Implement a function multiply(a, b) that returns the product of a and b in the math_multiply.py file."
     
-    # Run code_with_aider
+    # Run code_with_aider with working_dir
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        use_git=False  # Don't use git in tests
+        working_dir=temp_dir  # Pass the temp directory as working_dir
     )
     
     # Parse the JSON result
@@ -129,11 +147,11 @@ def test_division(temp_dir):
     
     prompt = "Implement a function divide(a, b) that returns a divided by b in the math_divide.py file. Handle division by zero by returning None."
     
-    # Run code_with_aider
+    # Run code_with_aider with working_dir
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        use_git=False  # Don't use git in tests
+        working_dir=temp_dir  # Pass the temp directory as working_dir
     )
     
     # Parse the JSON result
@@ -177,7 +195,7 @@ def test_failure_case(temp_dir):
             ai_coding_prompt=prompt,
             relative_editable_files=[test_file],
             model="non_existent_model_123456789",  # This model doesn't exist
-            use_git=False  # Don't use git in tests
+            working_dir=temp_dir  # Pass the temp directory as working_dir
         )
         
         # Parse the JSON result
@@ -221,7 +239,7 @@ def test_architect_mode(temp_dir):
         model="gemini/gemini-2.5-pro-exp-03-25",  # Main model
         editor_model="gemini/gemini-2.5-pro-exp-03-25",  # Explicitly set editor model
         use_architect=True,  # Explicitly enable architect mode
-        use_git=False  # Don't use git in tests
+        working_dir=temp_dir  # Pass the temp directory as working_dir
     )
     
     # Parse the JSON result

@@ -17,8 +17,8 @@ def main():
     parser.add_argument(
         "--current-working-dir", 
         type=str, 
-        default=".",
-        help="Current working directory (default: .)"
+        required=True,
+        help="Current working directory (must be a valid git repository)"
     )
     parser.add_argument(
         "--architect-model", 
