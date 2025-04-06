@@ -7,6 +7,12 @@ This server allows Claude Code to offload AI coding tasks to Aider, the best ope
 
 ## Setup
 
+0. Clone the repository:
+
+```bash
+git clone https://github.com/disler/aider-mcp-server.git
+```
+
 1. Install dependencies:
 
 ```bash
@@ -19,15 +25,43 @@ uv sync
 cp .env.sample .env
 ```
 
-3. Configure your API keys in the `.env` file:
+3. Configure your API keys in the `.env` file (or use the mcpServers "env" section) to have the api key needed for the model you want to use in aider:
 
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+...see .env.sample for more
 ```
 
-## Test run the server
+4. Copy and fill out the the `.mcp.json` into the root of your project and update the `--directory` to point to this project's root directory and the `--current-working-dir` to point to the root of your project.
+
+```json
+{
+  "mcpServers": {
+    "aider-mcp-server": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "<path to this project>",
+        "run",
+        "aider-mcp-server",
+        "--editor-model",
+        "gpt-4o",
+        "--current-working-dir",
+        "<path to your project>"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "<your gemini api key>",
+        "OPENAI_API_KEY": "<your openai api key>",
+        "ANTHROPIC_API_KEY": "<your anthropic api key>",
+        ...see .env.sample for more
+      }
+    }
+  }
+}
+```
 
 ```bash
 uv run aider-mcp-server
@@ -60,10 +94,10 @@ Note: The AI coding tests require a valid API key for the Gemini model. Make sur
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory . \
+  uv --directory "<path to the aider mcp server project>" \
   run aider-mcp-server \
   --editor-model "gemini/gemini-2.5-pro-exp-03-25" \
-  --current-working-dir "."
+  --current-working-dir "<path to your project>"
 ```
 
 ### Add with `gemini-2.5-pro-preview-03-25`
@@ -71,10 +105,10 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory . \
+  uv --directory "<path to the aider mcp server project>" \
   run aider-mcp-server \
   --editor-model "gemini/gemini-2.5-pro-preview-03-25" \
-  --current-working-dir "."
+  --current-working-dir "<path to your project>"
 ```
 
 ### Add with `quasar-alpha`
@@ -82,10 +116,10 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory . \
+  uv --directory "<path to the aider mcp server project>" \
   run aider-mcp-server \
   --editor-model "openrouter/openrouter/quasar-alpha" \
-  --current-working-dir "."
+  --current-working-dir "<path to your project>"
 ```
 
 ### Add with `llama4-maverick-instruct-basic`
@@ -93,10 +127,10 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory . \
+  uv --directory "<path to the aider mcp server project>" \
   run aider-mcp-server \
   --editor-model "fireworks_ai/accounts/fireworks/models/llama4-maverick-instruct-basic" \
-  --current-working-dir "."
+  --current-working-dir "<path to your project>"
 ```
 
 ## Usage
@@ -127,8 +161,6 @@ This tool allows you to run Aider to perform AI coding tasks based on a provided
 - `relative_readonly_files` (list of strings, optional): A list of file paths (relative to the `current_working_dir`) that Aider can read for context but cannot modify. Defaults to an empty list `[]`.
 - `model` (string, optional): The primary AI model Aider should use for generating code. Defaults to `"gemini/gemini-2.5-pro-exp-03-25"`. You can use the `list_models` tool to find other available models.
 - `editor_model` (string, optional): The AI model Aider should use for editing/refining code, particularly when using architect mode. If not provided, the primary `model` might be used depending on Aider's internal logic. Defaults to `None`.
-- `use_architect` (boolean, optional): Whether to use Aider's architect mode, which often involves a planning step before coding. Defaults to `True`.
-- `use_git` (boolean, optional): Whether Aider should interact with the git repository (e.g., for context or diffs). Defaults to `True`.
 
 **Example Usage (within an MCP request):**
 
