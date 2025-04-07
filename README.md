@@ -63,11 +63,8 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 }
 ```
 
-```bash
-uv run aider-mcp-server
-```
-
 ## Testing
+> Tests run with gemini-2.5-pro-exp-03-25
 
 To run all tests:
 
@@ -146,6 +143,7 @@ This MCP server provides the following functionalities:
    - Provides a list of models matching a substring
    - Useful for discovering supported models
 
+
 ## Available Tools
 
 This MCP server exposes the following tools:
@@ -164,6 +162,12 @@ This tool allows you to run Aider to perform AI coding tasks based on a provided
 
 **Example Usage (within an MCP request):**
 
+Claude Code Prompt:
+```
+Use the Aider AI Code tool to: Refactor the calculate_sum function in calculator.py to handle potential TypeError exceptions.
+```
+
+Result:
 ```json
 {
   "name": "aider_ai_code",
@@ -178,7 +182,9 @@ This tool allows you to run Aider to perform AI coding tasks based on a provided
 
 **Returns:**
 
-- A simple string indicating the outcome: `"success"` or `"failure"`.
+- A simple dict: {success, diff}
+  - `success`: boolean - Whether the operation was successful.
+  - `diff`: string - The diff of the changes made to the file.
 
 ### 2. `list_models`
 
@@ -190,6 +196,12 @@ This tool lists available AI models supported by Aider that match a given substr
 
 **Example Usage (within an MCP request):**
 
+Claude Code Prompt:
+```
+Use the Aider List Models tool to: List models that contain the substring "gemini".
+```
+
+Result:
 ```json
 {
   "name": "list_models",
