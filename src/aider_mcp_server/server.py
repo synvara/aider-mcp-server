@@ -103,7 +103,6 @@ def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
 def process_aider_ai_code_request(
     params: Dict[str, Any],
     editor_model: str,
-    architect_model: Optional[str],
     current_working_dir: str,
 ) -> Dict[str, Any]:
     """
@@ -112,7 +111,6 @@ def process_aider_ai_code_request(
     Args:
         params (Dict[str, Any]): The request parameters.
         editor_model (str): The editor model to use.
-        architect_model (Optional[str]): The architect model to use if architect mode is enabled.
         current_working_dir (str): The current working directory where git repo is located.
 
     Returns:
@@ -139,25 +137,16 @@ def process_aider_ai_code_request(
     # Get the model from request parameters if provided
     request_model = params.get("model")
 
-    use_architect = bool(architect_model)
-
     # Log the request details
     logger.info(f"AI Coding Request: Prompt: '{ai_coding_prompt}'")
     logger.info(f"Editable files: {relative_editable_files}")
     logger.info(f"Readonly files: {relative_readonly_files}")
-    logger.info(f"Using architect mode: {use_architect}")
     logger.info(f"Editor model: {editor_model}")
-    if use_architect:
-        logger.info(f"Architect model: {architect_model}")
     if request_model:
         logger.info(f"Request-specified model: {request_model}")
 
-    # Use the model specified in the request if provided, otherwise use the default logic
-    model_to_use = (
-        request_model
-        if request_model
-        else (architect_model if use_architect else editor_model)
-    )
+    # Use the model specified in the request if provided, otherwise use the editor model
+    model_to_use = request_model if request_model else editor_model
 
     # Use the passed-in current_working_dir parameter
     logger.info(f"Using working directory for code_with_aider: {current_working_dir}")
@@ -167,8 +156,6 @@ def process_aider_ai_code_request(
         relative_editable_files=relative_editable_files,
         relative_readonly_files=relative_readonly_files,
         model=model_to_use,
-        editor_model=editor_model if use_architect else None,
-        use_architect=use_architect,
         working_dir=current_working_dir,
     )
 
@@ -214,7 +201,6 @@ def handle_request(
     request: Dict[str, Any],
     current_working_dir: str,
     editor_model: str,
-    architect_model: Optional[str],
 ) -> Dict[str, Any]:
     """
     Handle incoming MCP requests according to the MCP protocol.
@@ -223,7 +209,6 @@ def handle_request(
         request (Dict[str, Any]): The request JSON.
         current_working_dir (str): The current working directory. Must be a valid git repository.
         editor_model (str): The editor model to use.
-        architect_model (Optional[str]): The architect model to use.
 
     Returns:
         Dict[str, Any]: The response JSON.
@@ -261,7 +246,7 @@ def handle_request(
         # Route to the appropriate handler based on request type
         if request_type == "aider_ai_code":
             return process_aider_ai_code_request(
-                params, editor_model, architect_model, current_working_dir
+                params, editor_model, current_working_dir
             )
 
         elif request_type == "list_models":
@@ -283,7 +268,6 @@ def handle_request(
 async def serve(
     editor_model: str = DEFAULT_EDITOR_MODEL,
     current_working_dir: str = None,
-    architect_model: Optional[str] = None,
 ) -> None:
     """
     Start the MCP server following the Model Context Protocol.
@@ -295,7 +279,6 @@ async def serve(
     Args:
         editor_model (str, optional): The editor model to use. Defaults to DEFAULT_EDITOR_MODEL.
         current_working_dir (str, required): The current working directory. Must be a valid git repository.
-        architect_model (Optional[str], optional): The architect model to use. Defaults to None.
 
     Raises:
         ValueError: If current_working_dir is not provided or is not a git repository.
@@ -320,12 +303,6 @@ async def serve(
 
     logger.info(f"Validated git repository at: {current_working_dir}")
 
-    if architect_model:
-        logger.info(f"Architect Model: {architect_model}")
-        logger.info("Architect mode enabled")
-    else:
-        logger.info("Architect mode disabled")
-
     # Set working directory
     logger.info(f"Setting working directory to: {current_working_dir}")
     os.chdir(current_working_dir)
@@ -348,7 +325,7 @@ async def serve(
             if name == "aider_ai_code":
                 logger.info(f"Processing 'aider_ai_code' tool call...")
                 result = process_aider_ai_code_request(
-                    arguments, editor_model, architect_model, current_working_dir
+                    arguments, editor_model, current_working_dir
                 )
                 return [TextContent(type="text", text=json.dumps(result))]
 

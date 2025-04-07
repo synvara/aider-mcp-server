@@ -183,8 +183,6 @@ def code_with_aider(
     relative_editable_files: List[str],
     relative_readonly_files: List[str] = [],
     model: str = "gemini/gemini-2.5-pro-exp-03-25",
-    editor_model: Optional[str] = None,
-    use_architect: bool = True,
     working_dir: str = None,
 ) -> str:
     """
@@ -195,8 +193,6 @@ def code_with_aider(
         relative_editable_files (List[str]): List of files that can be edited.
         relative_readonly_files (List[str], optional): List of files that can be read but not edited. Defaults to [].
         model (str, optional): The model to use. Defaults to "gemini/gemini-2.5-pro-exp-03-25".
-        editor_model (str, optional): The editor model to use. Defaults to None.
-        use_architect (bool, optional): Whether to use architect mode. Defaults to True.
         working_dir (str, required): The working directory where git repository is located and files are stored.
 
     Returns:
@@ -214,22 +210,13 @@ def code_with_aider(
     logger.info(f"Working directory: {working_dir}")
     logger.info(f"Editable files: {relative_editable_files}")
     logger.info(f"Readonly files: {relative_readonly_files}")
-    logger.info(f"Using architect: {use_architect}")
-    logger.info(f"Main model: {model}")
-    if use_architect and editor_model:
-        logger.info(f"Editor model: {editor_model}")
+    logger.info(f"Model: {model}")
 
     try:
         # Configure the model
         logger.info("Configuring AI model...")  # Point 1: Before init
-        if use_architect and editor_model:
-            ai_model = Model(model=model, editor_model=editor_model)
-            logger.info(
-                f"Configured architect model: {model}, editor model: {editor_model}"
-            )
-        else:
-            ai_model = Model(model)
-            logger.info(f"Configured single model: {model}")
+        ai_model = Model(model)
+        logger.info(f"Configured model: {model}")
         logger.info("AI model configured.")  # Point 2: After init
 
         # Create the coder instance
@@ -257,7 +244,6 @@ def code_with_aider(
             suggest_shell_commands=False,
             detect_urls=False,
             use_git=True,  # Always use git
-            # show_model_warnings=False,
         )
         logger.info("Aider coder instance created successfully.")
 
