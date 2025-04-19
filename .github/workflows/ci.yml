@@ -71,9 +71,21 @@ jobs:
   unit-test:
     name: Unit Tests with Coverage
     runs-on: ubuntu-latest
+    # Ensure correct permissions for WIF
+    permissions:
+      contents: "read"
+      id-token: "write"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # Authenticate to Google Cloud using Workload Identity Federation
+      - name: Authenticate to Google Cloud
+        id: "auth"
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "projects/837411258846/locations/global/workloadIdentityPools/github-pool/providers/github-provider" # Your Provider ID
+          service_account: "github-actions-sa@github-actions-457316.iam.gserviceaccount.com" # Your Service Account Email
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
