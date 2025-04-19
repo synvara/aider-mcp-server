@@ -12,6 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Define default permissions as read-only
+permissions:
+  contents: read
+
 jobs:
   # Job 1: Linting and Formatting Checks
   lint:
@@ -86,6 +90,18 @@ jobs:
         with:
           workload_identity_provider: "projects/837411258846/locations/global/workloadIdentityPools/github-pool/providers/github-provider" # Your Provider ID
           service_account: "github-actions-sa@github-actions-457316.iam.gserviceaccount.com" # Your Service Account Email
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCLOUD_PROJECT }}
+
+      - name: Dump gcloud creds & config
+        run: |
+          echo “GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}”
+          echo “CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE}”
+          gcloud auth list
+          gcloud config list
 
       - name: Verify Identity Token
         run: |
