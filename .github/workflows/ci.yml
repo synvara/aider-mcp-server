@@ -107,6 +107,11 @@ jobs:
         run: |
           gcloud auth print-identity-token | xargs -I {} curl "https://oauth2.googleapis.com/tokeninfo?id_token={}"
 
+      - name: Debug Environment
+        run: |
+          echo "Checking for Google credentials in environment:"
+          env | grep -i google
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
