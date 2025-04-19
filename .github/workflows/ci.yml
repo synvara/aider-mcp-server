@@ -75,6 +75,9 @@ jobs:
     permissions:
       contents: "read"
       id-token: "write"
+    # Add environment variables for API access
+    env:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
