@@ -92,9 +92,9 @@ def test_addition(temp_dir):
     with open(test_file) as f:
         content = f.read()
 
-    assert any(
-        x in content for x in ["def add(a, b):", "def add(a:"]
-    ), "Expected to find add function in the file"
+    assert any(x in content for x in ["def add(a, b):", "def add(a:"]), (
+        "Expected to find add function in the file"
+    )
     assert "return a + b" in content, "Expected to find return statement in the file"
 
     # Try to import and use the function
@@ -136,9 +136,9 @@ def test_subtraction(temp_dir):
     with open(test_file) as f:
         content = f.read()
 
-    assert any(
-        x in content for x in ["def subtract(a, b):", "def subtract(a:"]
-    ), "Expected to find subtract function in the file"
+    assert any(x in content for x in ["def subtract(a, b):", "def subtract(a:"]), (
+        "Expected to find subtract function in the file"
+    )
     assert "return a - b" in content, "Expected to find return statement in the file"
 
     # Try to import and use the function
@@ -180,9 +180,9 @@ def test_multiplication(temp_dir):
     with open(test_file) as f:
         content = f.read()
 
-    assert any(
-        x in content for x in ["def multiply(a, b):", "def multiply(a:"]
-    ), "Expected to find multiply function in the file"
+    assert any(x in content for x in ["def multiply(a, b):", "def multiply(a:"]), (
+        "Expected to find multiply function in the file"
+    )
     assert "return a * b" in content, "Expected to find return statement in the file"
 
     # Try to import and use the function
@@ -224,9 +224,9 @@ def test_division(temp_dir):
     with open(test_file) as f:
         content = f.read()
 
-    assert any(
-        x in content for x in ["def divide(a, b):", "def divide(a:"]
-    ), "Expected to find divide function in the file"
+    assert any(x in content for x in ["def divide(a, b):", "def divide(a:"]), (
+        "Expected to find divide function in the file"
+    )
     assert "return" in content, "Expected to find return statement in the file"
 
     # Try to import and use the function
@@ -315,9 +315,9 @@ def test_complex_tasks(temp_dir):
     result_dict = json.loads(result)
 
     # Check that it succeeded
-    assert (
-        result_dict["success"] is True
-    ), "Expected code_with_aider with architect mode to succeed"
+    assert result_dict["success"] is True, (
+        "Expected code_with_aider with architect mode to succeed"
+    )
     assert "diff" in result_dict, "Expected diff to be in result"
 
     # Check that the file was modified correctly with expected elements
@@ -352,9 +352,9 @@ def test_complex_tasks(temp_dir):
     # Test division by zero error handling
     try:
         result = calc.divide(5, 0)
-        assert result is None or isinstance(
-            result, (str, type(None))
-        ), "Expected divide by zero to return None, error message, or raise exception"
+        assert result is None or isinstance(result, (str, type(None))), (
+            "Expected divide by zero to return None, error message, or raise exception"
+        )
     except Exception:
         # It's fine if it raises an exception - that's valid error handling too
         pass
@@ -362,13 +362,13 @@ def test_complex_tasks(temp_dir):
     # Test memory functions if implemented as expected
     try:
         calc.memory_store(10)
-        assert (
-            calc.memory_recall() == 10
-        ), "Expected memory_recall() to return stored value"
+        assert calc.memory_recall() == 10, (
+            "Expected memory_recall() to return stored value"
+        )
         calc.memory_clear()
-        assert (
-            calc.memory_recall() == 0 or calc.memory_recall() is None
-        ), "Expected memory_recall() to return 0 or None after clearing"
+        assert calc.memory_recall() == 0 or calc.memory_recall() is None, (
+            "Expected memory_recall() to return 0 or None after clearing"
+        )
     except (AttributeError, TypeError):
         # Some implementations might handle memory differently
         pass
