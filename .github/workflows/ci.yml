@@ -90,7 +90,7 @@ jobs:
         run: uv sync --frozen --all-extras --dev
 
       - name: Run Pytest with Coverage
-        run: uv run pytest --cov=template_python_vsa --cov-report=xml --junitxml=test-report.xml
+        run: uv run pytest --cov=aider_mcp_server --cov-report=xml --junitxml=test-report.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4 # Use v4
