@@ -112,6 +112,13 @@ jobs:
           echo "Checking for Google credentials in environment:"
           env | grep -i google
 
+      - name: Force use of service account credentials
+        run: |
+          echo "Ensuring API key is not used and forcing service account credentials"
+          export GOOGLE_API_KEY=""
+          echo "GOOGLE_API_KEY=" >> $GITHUB_ENV
+          echo "Will use service account credentials from workload identity provider"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
