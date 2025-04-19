@@ -18,7 +18,7 @@ ResponseDict = dict[str, Union[bool, str]]
 
 
 def _get_changes_diff_or_content(
-    relative_editable_files: list[str], working_dir: str = None
+    relative_editable_files: list[str], working_dir: str | None = None
 ) -> str:
     """
     Get the git diff for the specified files, or their content if git fails.
@@ -84,7 +84,7 @@ def _get_changes_diff_or_content(
 
 
 def _check_for_meaningful_changes(
-    relative_editable_files: list[str], working_dir: str = None
+    relative_editable_files: list[str], working_dir: str | None = None
 ) -> bool:
     """
     Check if the edited files contain meaningful content.
@@ -139,7 +139,7 @@ def _check_for_meaningful_changes(
 
 
 def _process_coder_results(
-    relative_editable_files: list[str], working_dir: str = None
+    relative_editable_files: list[str], working_dir: str | None = None
 ) -> ResponseDict:
     """
     Process the results after Aider has run, checking for meaningful changes
@@ -191,7 +191,7 @@ def code_with_aider(
     relative_editable_files: list[str],
     relative_readonly_files: list[str] | None = None,
     model: str = "gemini/gemini-2.5-pro-exp-03-25",
-    working_dir: str = None,
+    working_dir: str | None = None,
 ) -> str:
     """
     Run Aider to perform AI coding tasks based on the provided prompt and files.

@@ -280,7 +280,7 @@ def handle_request(
 
 async def serve(
     editor_model: str = DEFAULT_EDITOR_MODEL,
-    current_working_dir: str = None,
+    current_working_dir: str | None = None,
 ) -> None:
     """
     Start the MCP server following the Model Context Protocol.
@@ -292,7 +292,7 @@ async def serve(
     Args:
         editor_model (str, optional): The editor model to use.
             Defaults to DEFAULT_EDITOR_MODEL.
-        current_working_dir (str, required): The current working directory.
+        current_working_dir (str | None, required): The current working directory.
             Must be a valid git repository.
 
     Raises:
@@ -324,12 +324,19 @@ async def serve(
 
     logger.info(f"Validated git repository at: {current_working_dir}")
 
-    # Set working directory
-    logger.info(f"Setting working directory to: {current_working_dir}")
-    os.chdir(current_working_dir)
+    # Set working directory (validated above)
+    if current_working_dir:
+        logger.info(f"Setting working directory to: {current_working_dir}")
+        os.chdir(current_working_dir)
+    else:
+        # This case should ideally be prevented by earlier validation
+        # but added for robustness if validation logic changes.
+        error_msg = "Critical: current_working_dir became None before chdir."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
-    # Create the MCP server
-    server = Server(tools=[AIDER_AI_CODE_TOOL, LIST_MODELS_TOOL])
+    # Create the MCP server instance with type annotation
+    server: Server = Server()
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
@@ -340,7 +347,6 @@ async def serve(
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         """Handle tool calls from the MCP client."""
         logger.info(f"Received Tool Call: Name='{name}'")
-        # Ensure arguments is always a dictionary, even if None initially
         arguments = arguments or {}
 
         # Handle based on tool name
@@ -351,38 +357,51 @@ async def serve(
                     editor_model=editor_model,
                     current_working_dir=current_working_dir,
                 )
-                # Ensure response_data always contains a string for the diff
                 diff_content = response_data.get(
                     "diff", "No diff information provided."
                 )
-                # Return success/failure status as a simple string message for now
-                # Ideally, MCP protocol might support structured success/error better
                 status_msg = "Success" if response_data.get("success") else "Failure"
-                # Combine status and diff into the TextContent
                 full_content = f"{status_msg}\n\nDiff:\n```diff\n{diff_content}\n```"
-                return [TextContent(text=full_content)]
+                return [TextContent(type="text", text=full_content)]
             except Exception as e:
                 logger.error(f"Error processing tool '{name}': {str(e)}", exc_info=True)
-                return [TextContent(text=f"Error processing tool '{name}': {str(e)}")]
+                return [
+                    TextContent(
+                        type="text", text=f"Error processing tool '{name}': {str(e)}"
+                    )
+                ]
         elif name == "list_models":
             try:
                 response_data = process_list_models_request(arguments)
                 models_list = response_data.get("models", [])
                 return [
                     TextContent(
-                        text=f"Available models:\n{json.dumps(models_list, indent=2)}"
+                        type="text",
+                        text=f"Available models:\n{json.dumps(models_list, indent=2)}",
                     )
                 ]
             except Exception as e:
                 logger.error(f"Error processing tool '{name}': {str(e)}", exc_info=True)
-                return [TextContent(text=f"Error processing tool '{name}': {str(e)}")]
+                return [
+                    TextContent(
+                        type="text", text=f"Error processing tool '{name}': {str(e)}"
+                    )
+                ]
         else:
             logger.warning(f"Received call for unknown tool: {name}")
-            return [TextContent(text=f"Unknown tool: {name}")]
+            return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
-    # Start the server using stdio
+    # Start the server using stdio with async with
     logger.info(
-        f"Starting server with editor_model='{editor_model}' and "
+        f"Starting server listener with editor_model='{editor_model}' and "
         f"cwd='{current_working_dir}'"
     )
-    await stdio_server(server)
+    try:
+        async with stdio_server() as (reader, writer):
+            logger.info("Server connection established. Waiting for requests...")
+            await server.run(reader, writer)
+            logger.info("Server run loop finished.")
+    except Exception as e:
+        logger.exception(f"Server stopped due to exception: {e}")
+    finally:
+        logger.info("Aider MCP Server shutting down.")

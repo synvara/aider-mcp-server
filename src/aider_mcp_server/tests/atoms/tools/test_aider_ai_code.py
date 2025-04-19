@@ -101,7 +101,7 @@ def test_addition(temp_dir):
     import sys
 
     sys.path.append(temp_dir)
-    from math_add import add
+    from math_add import add  # type: ignore[import-not-found]
 
     assert add(2, 3) == 5, "Expected add(2, 3) to return 5"
 
@@ -145,7 +145,7 @@ def test_subtraction(temp_dir):
     import sys
 
     sys.path.append(temp_dir)
-    from math_subtract import subtract
+    from math_subtract import subtract  # type: ignore[import-not-found]
 
     assert subtract(5, 3) == 2, "Expected subtract(5, 3) to return 2"
 
@@ -189,7 +189,7 @@ def test_multiplication(temp_dir):
     import sys
 
     sys.path.append(temp_dir)
-    from math_multiply import multiply
+    from math_multiply import multiply  # type: ignore[import-not-found]
 
     assert multiply(2, 3) == 6, "Expected multiply(2, 3) to return 6"
 
@@ -233,7 +233,7 @@ def test_division(temp_dir):
     import sys
 
     sys.path.append(temp_dir)
-    from math_divide import divide
+    from math_divide import divide  # type: ignore[import-not-found]
 
     assert divide(6, 3) == 2, "Expected divide(6, 3) to return 2"
     assert divide(1, 0) is None, "Expected divide(1, 0) to return None"
@@ -338,7 +338,7 @@ def test_complex_tasks(temp_dir):
     import sys
 
     sys.path.append(temp_dir)
-    from calculator import Calculator
+    from calculator import Calculator  # type: ignore[import-not-found]
 
     # Test the calculator
     calc = Calculator()

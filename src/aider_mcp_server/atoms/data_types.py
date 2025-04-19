@@ -8,7 +8,7 @@ class MCPRequest(BaseModel):
     """Base class for MCP protocol requests."""
 
     name: str
-    parameters: dict[str, Any]
+    parameters: BaseModel | dict[str, Any]
 
 
 class MCPResponse(BaseModel):

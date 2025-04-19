@@ -59,3 +59,10 @@ line-ending = "auto"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.mypy]
+ignore_missing_imports = true
+# You could be more specific if needed:
+# [[tool.mypy.overrides]]
+# module = "aider.*"
+# ignore_missing_imports = true
