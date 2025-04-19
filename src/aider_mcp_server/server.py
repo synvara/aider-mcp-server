@@ -335,8 +335,8 @@ async def serve(
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    # Create the MCP server instance with type annotation
-    server: Server = Server()
+    # Create the MCP server instance with type annotation and name
+    server: Server = Server(name="aider-mcp-server")
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
@@ -397,9 +397,12 @@ async def serve(
         f"cwd='{current_working_dir}'"
     )
     try:
+        # Create initialization options (needed for server.run)
+        options = server.create_initialization_options()
         async with stdio_server() as (reader, writer):
             logger.info("Server connection established. Waiting for requests...")
-            await server.run(reader, writer)
+            # Pass options to server.run
+            await server.run(reader, writer, initialization_options=options)
             logger.info("Server run loop finished.")
     except Exception as e:
         logger.exception(f"Server stopped due to exception: {e}")
