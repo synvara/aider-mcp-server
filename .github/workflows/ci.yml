@@ -90,6 +90,10 @@ jobs:
           workload_identity_provider: "projects/837411258846/locations/global/workloadIdentityPools/github-pool/providers/github-provider" # Your Provider ID
           service_account: "github-actions-sa@github-actions-457316.iam.gserviceaccount.com" # Your Service Account Email
 
+      - name: Verify Identity Token
+        run: |
+          gcloud auth print-identity-token | xargs -I {} curl "https://oauth2.googleapis.com/tokeninfo?id_token={}"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
