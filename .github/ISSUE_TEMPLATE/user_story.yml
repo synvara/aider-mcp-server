@@ -1,0 +1,111 @@
+name: 📝 User Story
+description: Create a new user story
+title: "[Epic-ID]-[Story]: <Short descriptive title>"
+labels: ["story"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for creating a new user story!
+        
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: Describe the user story in the standard format.
+      placeholder: |
+        **As a** [role]
+        **I want** [capability]
+        **so that** [benefit/value]
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      description: Current status of this story
+      options:
+        - Draft
+        - Ready for Review
+        - In Progress
+        - Completed
+    validations:
+      required: true
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide additional context, background, and reasoning for this story.
+      placeholder: This story is necessary because...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: estimation
+    attributes:
+      label: Estimation
+      description: Provide an estimation of the effort required.
+      placeholder: |
+        Story Points: [number]
+    validations:
+      required: true
+      
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the acceptance criteria that must be met for this story to be considered complete.
+      placeholder: |
+        1. - [ ] Criteria 1
+        2. - [ ] Criteria 2
+        3. - [ ] Criteria 3
+    validations:
+      required: true
+      
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: List the actionable tasks for implementing this story.
+      placeholder: |
+        - Task 1
+        - Task 2
+        - Task 3
+    validations:
+      required: false
+      
+  - type: textarea
+    id: testing-requirements
+    attributes:
+      label: Testing Requirements
+      description: Specify the testing requirements for this story.
+      placeholder: |
+        - Required Code Coverage: [percentage]
+        - [Additional testing notes]
+    validations:
+      required: true
+      
+  - type: textarea
+    id: story-wrap-up
+    attributes:
+      label: Story Wrap Up
+      description: To be filled in AFTER execution.
+      placeholder: |
+        - **Agent Model Used:** `[Model/Version]`
+        - **Agent Credit or Cost:** `[Cost]`
+        - **Date/Time Completed:** `[Timestamp in ISO format]`
+        - **Commit Hash:** `[Git Commit Hash]`
+        - **Change Log**
+            - `<Brief description of change 1>`
+            - `<Brief description of change 2>`
+    validations:
+      required: false
+      
+  - type: textarea
+    id: issue-metadata
+    attributes:
+      label: Issue Metadata (JSON Format)
+      description: Metadata in JSON format for reference/tooling.
+      placeholder: |

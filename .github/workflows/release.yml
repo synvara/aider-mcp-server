@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "pyproject.toml"
+
+# Prevent concurrent version releases
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Check Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      is_new_version: ${{ steps.check.outputs.is_new_version }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if version changed
+        id: check
+        run: |
+          # Get the current version from pyproject.toml
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Check if a tag with this version already exists
+          if git tag -l "v$CURRENT_VERSION" | grep -q "v$CURRENT_VERSION"; then
+            echo "Version $CURRENT_VERSION already exists as a tag"
+            echo "is_new_version=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected: $CURRENT_VERSION"
+            echo "is_new_version=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    name: Create Release
+    needs: check-version
+    if: needs.check-version.outputs.is_new_version == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Add setup steps for Python and uv
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-extras --frozen
+
+      - name: Build distributions
+        run: uv build --sdist --wheel
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "Generating changelog..."
+
+          # Check if there are any existing tags
+          if git tag | grep -q "v"; then
+            # If we have previous tags, get the most recent one
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            echo "Latest tag: $LATEST_TAG"
+            
+            if [ -n "$LATEST_TAG" ]; then
+              # Generate changelog from the latest tag to HEAD
+              CHANGELOG=$(git log --pretty=format:"* %s (%h)" $LATEST_TAG..HEAD)
+            else
+              # Fallback if tag detection failed
+              CHANGELOG=$(git log --pretty=format:"* %s (%h)" -n 20)
+            fi
+          else
+            # First release - include all commits
+            echo "This appears to be the first release."
+            CHANGELOG=$(git log --pretty=format:"* %s (%h)" -n 20)
+          fi
+
+          # Handle empty changelog
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="* First release"
+          fi
+
+          # Escape special characters for GitHub Actions output
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*" # Upload build artifacts
+          tag: v${{ needs.check-version.outputs.version }}
+          name: v${{ needs.check-version.outputs.version }}
+          body: |
+            ## Changes in this Release
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation / Getting Started
+
+            Refer to the main README.md for detailed setup and usage instructions.
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}

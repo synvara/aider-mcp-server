@@ -1,0 +1,171 @@
+name: Auto Version Bump
+
+on:
+  # Only trigger on PR merges to main or master
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: "Type of version bump to perform"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+# Prevent concurrent version bumps
+concurrency:
+  group: version-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  auto-version:
+    # Only run on merged PRs (not closed without merge)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    name: Update Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Use Python/uv setup
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        # No cache needed here as we aren't installing deps heavily
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Determine Version Type from Commits
+        id: version-type
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          # Default to patch for safety
+          TYPE="patch"
+
+          # Look at all commits in the PR
+          PR_COMMITS=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%s")
+          echo "PR Commits:"
+          echo "$PR_COMMITS"
+
+          # Check for conventional commit prefixes
+          if echo "$PR_COMMITS" | grep -q '^feat\!:' || echo "$PR_COMMITS" | grep -q '^BREAKING CHANGE:'; then
+            TYPE="major"
+          elif echo "$PR_COMMITS" | grep -q '^feat:'; then
+            TYPE="minor"
+          elif echo "$PR_COMMITS" | grep -q '^fix:'; then
+            TYPE="patch"
+          fi
+
+          echo "Determined version bump type: $TYPE"
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+
+      - name: Bump Version
+        id: bump-version
+        run: |
+          # Get current version from pyproject.toml
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Determine version type (from input or commit analysis)
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TYPE="${{ github.event.inputs.version-type }}"
+          else
+            TYPE="${{ steps.version-type.outputs.type }}"
+          fi
+          echo "Version bump type: $TYPE"
+
+          # Split version into components
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+
+          # Bump version according to type
+          if [ "$TYPE" == "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$TYPE" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          # Create new version
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Update pyproject.toml using sed (ensure backup)
+          sed -i.bak "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
+          rm pyproject.toml.bak # Remove backup if sed succeeded
+          echo "Updated pyproject.toml to version $NEW_VERSION"
+
+      - name: Create Branch and Push
+        id: create-branch
+        run: |
+          # Generate a unique ID for the branch
+          UNIQUE_ID=$(date +%s)
+
+          # Create a new branch for the version bump
+          BRANCH_NAME="release/RELEASE-${UNIQUE_ID}/v${{ steps.bump-version.outputs.version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+          # Create a new branch from the current HEAD
+          git checkout -b $BRANCH_NAME
+
+          # Add and commit the changes
+          git add pyproject.toml # Commit pyproject.toml instead of package.json
+          git commit -m "chore: bump version to ${{ steps.bump-version.outputs.version }}"
+
+          # Push without force
+          git push origin $BRANCH_NAME
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Construct the PR body
+          PR_BODY=$(cat <<-EOF
+          ## Version Release
+
+          This PR was created automatically by the auto-versioning workflow.
+
+          - New version: v${{ steps.bump-version.outputs.version }}
+          - Bump type: ${{ github.event.inputs.version-type || steps.version-type.outputs.type }}
+
+          Merging this PR will trigger the release workflow to create a new GitHub release.
+          EOF
+          )
+
+          # Create the pull request
+          gh pr create \\
+            --base "${{ github.event.repository.default_branch }}" \\
+            --head "${{ steps.create-branch.outputs.branch_name }}" \\
+            --title "Release v${{ steps.bump-version.outputs.version }}" \\
+            --body "$PR_BODY"
+
+          # Add labels if they exist (optional, won't fail if labels don't exist)
+          gh pr edit ${{ steps.create-branch.outputs.branch_name }} --add-label "automated" || echo "Label 'automated' not found, skipping"
+          gh pr edit ${{ steps.create-branch.outputs.branch_name }} --add-label "version-bump" || echo "Label 'version-bump' not found, skipping"

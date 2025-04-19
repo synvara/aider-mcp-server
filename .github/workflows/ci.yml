@@ -1,0 +1,130 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Prevent redundant runs of the same code
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job 1: Linting and Formatting Checks
+  lint:
+    name: Lint and Format Check # Name shown in GitHub UI for the status check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          # Enable cache persistence
+          enable-cache: true
+        # Optional: Pin uv version for reproducibility
+        # version: "0.x.y"
+
+      - name: Install dependencies and project (editable)
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Check formatting and lint code
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+  # Job 2: Python Type Checking
+  typecheck:
+    name: Type Check # Status check name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # version: "0.x.y"
+
+      - name: Install dependencies and project (editable)
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Run Mypy type check
+        run: uv run mypy .
+
+  # Job 3: Unit Tests
+  unit-test:
+    name: Unit Tests with Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # version: "0.x.y"
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Run Pytest with Coverage
+        run: uv run pytest --cov=template_python_vsa --cov-report=xml --junitxml=test-report.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4 # Use v4
+        # Removed token - Codecov action v4 recommends omitting token for public repos
+        # token: ${{ secrets.CODECOV_TOKEN }} # If private repo or required, uncomment and set secret
+        # slug: synvara/template-python-vsa # Optional: Usually auto-detected
+
+      - name: Upload test results to Codecov
+        uses: codecov/test-results-action@v1
+        # token: ${{ secrets.CODECOV_TOKEN }} # If private repo or required, uncomment and set secret
+        with:
+          file: test-report.xml
+
+  # Job 4: Build Check
+  build-check:
+    name: Build Check # Status check name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # version: "0.x.y"
+
+      - name: Install dependencies and project (editable)
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Build source and wheel distributions
+        run: uv build --sdist --wheel

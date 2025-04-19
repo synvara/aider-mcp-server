@@ -1,0 +1,11 @@
+# Define code owners for different parts of the project.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Example: Assign all files to a user or team
+# *       @github-username-or-org/team-name
+
+# Example: Assign specific directories or file types
+# src/lib/server/  @backend-team
+# src/routes/      @frontend-team
+# *.svelte         @svelte-experts
+# .github/workflows/* @devops-team 

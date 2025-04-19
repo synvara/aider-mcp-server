@@ -1,0 +1,105 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "template_python_vsa/**"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "template_python_vsa/**"
+      - ".github/workflows/docker.yml"
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Prevent redundant runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  docker:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from pyproject.toml
+        id: package_version
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      # Docker login must happen BEFORE Buildx setup for cloud drivers
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: cloud
+          # Use a repository variable for the buildx endpoint
+          endpoint: ${{ vars.DOCKER_BUILDX_ENDPOINT }}
+          install: true
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}
+          tags: |
+            # Use semantic version from package.json
+            type=raw,value=v${{ steps.package_version.outputs.version }}
+            # Use git sha for precise tracing to commits
+            type=sha,format=short
+            # Only tag as latest on main/master branch non-PR builds
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+
+      # For PR builds - just build and test
+      - name: Build and test image (PR)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}:pr-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Python FastAPI application template using VSA
+            org.opencontainers.image.licenses=MIT
+
+      # For push to main/master - build and push
+      - name: Build and push image (Production)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}:buildcache
+          cache-to: type=registry,ref=${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}:buildcache,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Python FastAPI application template using VSA
+            org.opencontainers.image.licenses=MIT
