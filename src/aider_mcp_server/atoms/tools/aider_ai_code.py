@@ -6,7 +6,7 @@ from typing import Union
 
 from aider.coders import Coder
 from aider.io import InputOutput
-from aider.models import Model
+from aider.models import Model, fuzzy_match_models
 
 from aider_mcp_server.atoms.logging import get_logger
 
@@ -234,6 +234,35 @@ def code_with_aider(
         )
         logger.error(error_msg)
         return _format_response({"success": False, "diff": error_msg})
+
+    # --- Start: Add Model Validation ---
+    logger.info(f"Validating model: {model}")
+
+    # Allow the specific experimental model suggested by the API error message,
+    # even if fuzzy_match_models doesn't list it.
+    if model == "gemini/gemini-2.5-pro-exp-03-25":
+        logger.warning(f"Allowing potentially unlisted experimental model: {model}")
+        is_model_valid = True
+    else:
+        valid_models = fuzzy_match_models(model)  # Returns list[str]
+        # Check if the *exact* model name provided is in the list
+        # of valid fuzzy matches.
+        is_model_valid = model in valid_models  # Direct check in list of strings
+
+    if not is_model_valid:
+        error_msg = f"Error: Model '{model}' is not recognized or available."
+        logger.error(error_msg)
+        # Also list possible matches if the fuzzy search found any
+        if valid_models:
+            possible_matches = valid_models  # Already a list of strings
+            error_msg += f" Possible matches: {possible_matches}"
+            logger.info(f"Possible model matches found: {possible_matches}")
+        else:
+            logger.info("No similar models found.")
+        return _format_response({"success": False, "diff": error_msg})
+    else:
+        logger.info(f"Model '{model}' validated successfully (or explicitly allowed).")
+    # --- End: Add Model Validation ---
 
     # Check if the working directory is a git repository
     # Aider usually requires this

@@ -62,6 +62,10 @@ def temp_dir():
     shutil.rmtree(tmp_dir)
 
 
+# Use a known valid model for testing based on fuzzy_match_models output
+TEST_MODEL_ID = "gemini/gemini-2.5-pro-exp-03-25"
+
+
 def test_addition(temp_dir):
     """Test that code_with_aider can create a file that adds two numbers."""
     # Create the test file
@@ -74,11 +78,12 @@ def test_addition(temp_dir):
         "math_add.py file."
     )
 
-    # Run code_with_aider with working_dir
+    # Run code_with_aider with working_dir and valid model
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        working_dir=temp_dir,  # Pass the temp directory as working_dir
+        model=TEST_MODEL_ID,  # Use valid model
+        working_dir=temp_dir,
     )
 
     # Parse the JSON result
@@ -118,11 +123,12 @@ def test_subtraction(temp_dir):
         "math_subtract.py file."
     )
 
-    # Run code_with_aider with working_dir
+    # Run code_with_aider with working_dir and valid model
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        working_dir=temp_dir,  # Pass the temp directory as working_dir
+        model=TEST_MODEL_ID,  # Use valid model
+        working_dir=temp_dir,
     )
 
     # Parse the JSON result
@@ -162,11 +168,12 @@ def test_multiplication(temp_dir):
         "in the math_multiply.py file."
     )
 
-    # Run code_with_aider with working_dir
+    # Run code_with_aider with working_dir and valid model
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        working_dir=temp_dir,  # Pass the temp directory as working_dir
+        model=TEST_MODEL_ID,  # Use valid model
+        working_dir=temp_dir,
     )
 
     # Parse the JSON result
@@ -206,11 +213,12 @@ def test_division(temp_dir):
         "math_divide.py file. Handle division by zero by returning None."
     )
 
-    # Run code_with_aider with working_dir
+    # Run code_with_aider with working_dir and valid model
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        working_dir=temp_dir,  # Pass the temp directory as working_dir
+        model=TEST_MODEL_ID,  # Use valid model
+        working_dir=temp_dir,
     )
 
     # Parse the JSON result
@@ -241,9 +249,9 @@ def test_division(temp_dir):
 
 def test_failure_case(temp_dir):
     """Test that code_with_aider returns error information for a failure scenario."""
-
+    original_cwd = os.getcwd()  # Store original CWD
     try:
-        # Ensure this test runs in a non-git directory
+        # Change to the temp directory for the test
         os.chdir(temp_dir)
 
         # Create a test file in the temp directory
@@ -252,35 +260,37 @@ def test_failure_case(temp_dir):
             f.write("# This file should trigger a failure\n")
 
         # Use an invalid model name to ensure a failure
+        invalid_model_name = "non_existent_model_123456789"
         prompt = "This prompt should fail because we're using a non-existent model."
 
         # Run code_with_aider with an invalid model name
         result = code_with_aider(
             ai_coding_prompt=prompt,
             relative_editable_files=[test_file],
-            model="non_existent_model_123456789",  # This model doesn't exist
-            working_dir=temp_dir,  # Pass the temp directory as working_dir
+            model=invalid_model_name,
+            working_dir=temp_dir,
         )
 
         # Parse the JSON result
         result_dict = json.loads(result)
 
-        # Check the result - we're still expecting success=False but the important part
-        # is that we get a diff that explains the error.
-        # The diff should indicate that no meaningful changes were made,
-        # often because the model couldn't be reached or produced no output.
+        # Check the result - we expect success=False and a specific error message
+        # in the diff due to the model validation.
+        assert result_dict["success"] is False, (
+            "Expected success to be False for invalid model"
+        )
         assert "diff" in result_dict, "Expected diff to be in result"
         diff_content = result_dict["diff"]
-        assert (
-            "File contents after editing (git not used):" in diff_content
-            or "No meaningful changes detected" in diff_content
-        ), (
-            "Expected error information like 'File contents after editing' or "
-            f"'No meaningful changes' in diff, but got: {diff_content}"
+        expected_error_msg = (
+            f"Error: Model '{invalid_model_name}' is not recognized or available."
         )
+        assert expected_error_msg in diff_content, (
+            f"Expected diff to contain model validation error, but got: {diff_content}"
+        )
+
     finally:
-        # Make sure we go back to the main directory
-        os.chdir("/Users/indydevdan/Documents/projects/aider-mcp-exp")
+        # Make sure we go back to the original directory
+        os.chdir(original_cwd)  # Change back to original CWD
 
 
 def test_complex_tasks(temp_dir):
@@ -303,12 +313,12 @@ def test_complex_tasks(temp_dir):
     All methods should be well-documented with docstrings.
     """
 
-    # Run code_with_aider with explicit model
+    # Run code_with_aider with explicit valid model
     result = code_with_aider(
         ai_coding_prompt=prompt,
         relative_editable_files=[test_file],
-        model="gemini/gemini-2.5-pro-exp-03-25",  # Main model
-        working_dir=temp_dir,  # Pass the temp directory as working_dir
+        model=TEST_MODEL_ID,  # Use valid model
+        working_dir=temp_dir,
     )
 
     # Parse the JSON result
