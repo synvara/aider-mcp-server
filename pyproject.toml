@@ -1,6 +1,6 @@
 [project]
 name = "aider-mcp-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "Model context protocol server for offloading ai coding work to Aider"
 readme = "README.md"
 authors = [
