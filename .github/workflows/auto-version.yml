@@ -63,9 +63,14 @@ jobs:
           TYPE="patch"
 
           # Look at all commits in the PR
-          PR_COMMITS=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%s")
-          echo "PR Commits:"
-          echo "$PR_COMMITS"
+          if [ -n "${{ github.base_ref }}" ]; then
+            PR_COMMITS=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%s")
+            echo "PR Commits:"
+            echo "$PR_COMMITS"
+          else
+            echo "No base ref available (manual trigger), skipping commit analysis"
+            PR_COMMITS=""
+          fi
 
           # Check for conventional commit prefixes
           if echo "$PR_COMMITS" | grep -q '^feat\!:' || echo "$PR_COMMITS" | grep -q '^BREAKING CHANGE:'; then
