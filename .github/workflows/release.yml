@@ -11,6 +11,10 @@ concurrency:
   group: release-${{ github.sha }}
   cancel-in-progress: false
 
+# Define default permissions as read-only
+permissions:
+  contents: read
+
 jobs:
   check-version:
     name: Check Version Change
@@ -47,6 +51,7 @@ jobs:
     if: needs.check-version.outputs.is_new_version == 'true'
     runs-on: ubuntu-latest
     permissions:
+      # Override default: This job needs write access to create tags/releases
       contents: write
     steps:
       - name: Checkout code

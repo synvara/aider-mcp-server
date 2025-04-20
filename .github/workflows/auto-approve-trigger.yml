@@ -2,7 +2,7 @@ name: Trigger Auto Approve Bot
 
 on:
   workflow_run:
-    workflows: ['CI', 'Docker Build']
+    workflows: ["CI", "Docker Build"]
     types:
       - completed
 
@@ -11,6 +11,11 @@ on:
 # To customize this workflow for your organization:
 # 1. Create a repository variable PR_APPROVE_WORKFLOW_REPO with the full path to your reusable workflow
 #    Example: your-org/your-actions-repo/.github/workflows/reusable-pr-approve.yml@main
+
+# Define permissions required by the reusable workflow
+permissions:
+  pull-requests: write
+  # Add other permissions if needed by the reusable workflow (e.g., contents: read)
 
 jobs:
   call-reusable-approval:
