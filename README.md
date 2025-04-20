@@ -1,4 +1,5 @@
 # Aider MCP Server - Experimental
+
 > Model context protocol server for offloading AI coding work to Aider, enhancing development efficiency and flexibility.
 
 ## Overview
@@ -41,29 +42,36 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
   "mcpServers": {
     "aider-mcp-server": {
       "type": "stdio",
-      "command": "uv",
+      "command": "docker",
       "args": [
-        "--directory",
-        "<path to this project>",
         "run",
-        "aider-mcp-server",
+        "-i",
+        "--rm",
+        "-u",
+        "1000:1000", // Replace with your user ID and group ID (id -u/id -g)
+        "-e",
+        "OPENAI_API_KEY=your_openai_key_here",
+        "-e",
+        "GEMINI_API_KEY=your_gemini_key_here", // Optional
+        "-e",
+        "ANTHROPIC_API_KEY=your_anthropic_key_here", // Optional
+        "-v",
+        "/absolute/path/to/your/project:/project",
+        "-v",
+        "/absolute/path/to/your/project/logs:/build/logs",
+        "aider-mcp-server:local-preview",
         "--editor-model",
-        "gpt-4o",
+        "gpt-4o", // Choose your preferred model
         "--current-working-dir",
-        "<path to your project>"
-      ],
-      "env": {
-        "GEMINI_API_KEY": "<your gemini api key>",
-        "OPENAI_API_KEY": "<your openai api key>",
-        "ANTHROPIC_API_KEY": "<your anthropic api key>",
-        ...see .env.sample for more
-      }
+        "/project"
+      ]
     }
   }
 }
 ```
 
 ## Testing
+
 > Tests run with gemini-2.5-pro-exp-03-25
 
 To run all tests:
@@ -130,11 +138,71 @@ claude mcp add aider-mcp-server -s local \
   --current-working-dir "<path to your project>"
 ```
 
+### Important Setup Steps for Docker
+
+1. **Create a logs directory** in your project folder:
+
+   ```bash
+   mkdir -p /path/to/your/project/logs
+   ```
+
+2. **Find your user and group ID**:
+
+   ```bash
+   id -u  # User ID
+   id -g  # Group ID
+   ```
+
+   Replace `1000:1000` with these values.
+
+3. **Specify your API keys** directly in the args list:
+
+   - API keys must be specified using the format `-e`, `"KEY=value"`
+   - At least one API key is required, based on your model selection
+
+4. **Set the correct volume paths**:
+   - Replace `/absolute/path/to/your/project` with the absolute path to your project folder
+   - The logs volume mount is required to avoid permission errors
+
+### Command-Line Docker Alternative
+
+You can also run the Docker container directly from the command line:
+
+```bash
+# Create logs directory first
+mkdir -p "$(pwd)/logs"
+
+# Run the container
+docker run -it --rm \
+  -u $(id -u):$(id -g) \
+  -e OPENAI_API_KEY=your_openai_key_here \
+  -e GEMINI_API_KEY=your_gemini_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_key_here \
+  -v "$(pwd):/project" \
+  -v "$(pwd)/logs:/build/logs" \
+  aider-mcp-server:local-preview \
+  --editor-model gpt-4o \
+  --current-working-dir /project
+```
+
+### Troubleshooting Docker Setup
+
+**Permission Errors**: If you see permission errors related to files or logs:
+
+- Verify your user/group ID is correct in the `-u` parameter
+- Ensure the logs directory exists and is writable
+
+**Authentication Errors**: If you see `litellm.AuthenticationError`:
+
+- Verify API keys are correctly specified using `-e`, `"KEY=value"` format
+- Do not use the `-e`, `"KEY"` format, as Docker will not find the variables
+
 ## Usage
 
 This MCP server provides the following functionalities:
 
 1. **Offload AI coding tasks to Aider**:
+
    - Takes a prompt and file paths
    - Uses Aider to implement the requested changes
    - Returns success or failure
@@ -142,7 +210,6 @@ This MCP server provides the following functionalities:
 2. **List available models**:
    - Provides a list of models matching a substring
    - Useful for discovering supported models
-
 
 ## Available Tools
 
@@ -163,11 +230,13 @@ This tool allows you to run Aider to perform AI coding tasks based on a provided
 **Example Usage (within an MCP request):**
 
 Claude Code Prompt:
+
 ```
 Use the Aider AI Code tool to: Refactor the calculate_sum function in calculator.py to handle potential TypeError exceptions.
 ```
 
 Result:
+
 ```json
 {
   "name": "aider_ai_code",
@@ -197,11 +266,13 @@ This tool lists available AI models supported by Aider that match a given substr
 **Example Usage (within an MCP request):**
 
 Claude Code Prompt:
+
 ```
 Use the Aider List Models tool to: List models that contain the substring "gemini".
 ```
 
 Result:
+
 ```json
 {
   "name": "list_models",
@@ -274,4 +345,3 @@ The project is organized into the following main directories and files:
   - **`server.py`**: Orchestrates the MCP server. It initializes the server, registers the tools defined in the `atoms/tools` directory, handles incoming requests, routes them to the appropriate tool logic, and sends back responses according to the MCP protocol.
   - **`__main__.py`**: Provides the command-line interface entry point (`aider-mcp-server`), parsing arguments like `--editor-model` and starting the server defined in `server.py`.
   - **`tests`**: Contains tests mirroring the structure of the `src` directory, ensuring that each component (especially atoms) works as expected.
-
