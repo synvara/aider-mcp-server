@@ -41,9 +41,13 @@ jobs:
       - name: Get version from pyproject.toml
         id: package_version
         run: |
-          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Using version: $VERSION"
+          if VERSION=$(grep -E '^version\s*=\s*"[^"]+"' pyproject.toml | head -n 1 | sed -E 's/^version\s*=\s*"([^"]+)".*/\1/'); then
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Using version: $VERSION"
+          else
+            echo "Error: Could not extract version from pyproject.toml"
+            exit 1
+          fi
 
       # Docker login must happen BEFORE Buildx setup for cloud drivers
       - name: Log in to Docker Hub
