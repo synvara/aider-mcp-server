@@ -10,6 +10,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "aider-chat>=0.81.0",
+    "google-generativeai>=0.8.5",
     "mcp>=1.6.0",
     "pydantic>=2.11.2",
     "rich>=14.0.0",
