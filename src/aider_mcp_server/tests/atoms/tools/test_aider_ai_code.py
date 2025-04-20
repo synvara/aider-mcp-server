@@ -257,11 +257,19 @@ def test_failure_case(temp_dir):
         # Create a test file in the temp directory
         test_file = os.path.join(temp_dir, "failure_test.py")
         with open(test_file, "w") as f:
-            f.write("# This file should trigger a failure\n")
+            f.write("# This file should trigger a failure\\n")
 
         # Use an invalid model name to ensure a failure
         invalid_model_name = "non_existent_model_123456789"
         prompt = "This prompt should fail because we're using a non-existent model."
+
+        # Determine expected model name in error based on environment
+        is_ci_environment = os.getenv("GITHUB_ACTIONS") == "true"
+        expected_model_in_error = (
+            f"vertex_ai/{invalid_model_name}"
+            if is_ci_environment
+            else invalid_model_name
+        )
 
         # Run code_with_aider with an invalid model name
         result = code_with_aider(
@@ -282,15 +290,14 @@ def test_failure_case(temp_dir):
         assert "diff" in result_dict, "Expected diff to be in result"
         diff_content = result_dict["diff"]
         expected_error_msg = (
-            f"Error: Model '{invalid_model_name}' is not recognized or available."
+            f"Error: Model '{expected_model_in_error}' is not recognized or available."
         )
         assert expected_error_msg in diff_content, (
             f"Expected diff to contain model validation error, but got: {diff_content}"
         )
 
     finally:
-        # Make sure we go back to the original directory
-        os.chdir(original_cwd)  # Change back to original CWD
+        os.chdir(original_cwd)  # Change back to original directory
 
 
 def test_complex_tasks(temp_dir):
