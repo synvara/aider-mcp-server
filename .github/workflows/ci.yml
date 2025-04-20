@@ -73,7 +73,7 @@ jobs:
 
   # Job 3: Unit Tests
   unit-test:
-    name: Unit Tests with Coverage
+    name: Unit Tests # Match the required status check name
     runs-on: ubuntu-latest
     # Ensure correct permissions for WIF
     permissions:
@@ -99,8 +99,8 @@ jobs:
 
       - name: Dump gcloud creds & config
         run: |
-          echo “GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}”
-          echo “CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE}”
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}"
+          echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE}"
           gcloud auth list
           gcloud config list
 
