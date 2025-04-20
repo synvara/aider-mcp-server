@@ -219,12 +219,49 @@ def code_with_aider(
             {"success": False, "diff": "Error: working_dir not provided"}
         )
 
+    # --- Start: Conditional configuration for CI (Vertex AI/ADC) vs Local (API Key) ---
+    is_ci_environment = os.getenv("GITHUB_ACTIONS") == "true"
+    effective_model = model
+
+    if is_ci_environment:
+        logger.info("CI environment detected. Configuring for Vertex AI with ADC.")
+        # Prepend prefix for Vertex AI models
+        if not model.startswith("vertex_ai/"):
+            effective_model = f"vertex_ai/{model.split('/')[-1]}"  # Use base model name
+            logger.info(f"Adjusted model name for Vertex AI: {effective_model}")
+        else:
+            logger.info("Model name already has vertex_ai/ prefix.")
+
+        # Set environment variables for litellm/Vertex AI ADC
+        vertex_project = "github-actions-457316"
+        vertex_location = "us-central1"  # Or your desired region
+        os.environ["VERTEX_PROJECT"] = vertex_project
+        os.environ["VERTEX_LOCATION"] = vertex_location
+        logger.info(f"Set VERTEX_PROJECT={vertex_project}")
+        logger.info(f"Set VERTEX_LOCATION={vertex_location}")
+        # Ensure API key is not interfering (though ADC should take precedence)
+        if "GOOGLE_API_KEY" in os.environ:
+            logger.warning(
+                "GOOGLE_API_KEY found in environment, ADC should still be used"
+                " for Vertex."
+            )
+            # Consider unsetting if issues persist: del os.environ["GOOGLE_API_KEY"]
+    else:
+        logger.info(
+            "Local environment detected. Assuming API key (e.g., GEMINI_API_KEY) is available."
+        )
+        # Use the model name directly, litellm should handle API key auth
+        logger.info(f"Using model name for API key auth: {effective_model}")
+    # --- End: Conditional configuration ---
+
     # Log inputs
     logger.info("Received Aider AI Code request:")
     logger.info(f"  Prompt: {ai_coding_prompt}")
     logger.info(f"  Editable Files: {relative_editable_files}")
     logger.info(f"  Readonly Files: {relative_readonly_files}")
-    logger.info(f"  Model: {model}")
+    logger.info(
+        f"  Model: {effective_model}"
+    )  # Log the potentially adjusted model name
     logger.info(f"  Working Dir: {working_dir}")
 
     # Check if the working directory is valid
@@ -236,21 +273,29 @@ def code_with_aider(
         return _format_response({"success": False, "diff": error_msg})
 
     # --- Start: Add Model Validation ---
-    logger.info(f"Validating model: {model}")
+    logger.info(f"Validating model: {effective_model}")
 
     # Allow the specific experimental model suggested by the API error message,
     # even if fuzzy_match_models doesn't list it.
-    if model == "gemini/gemini-2.5-pro-exp-03-25":
-        logger.warning(f"Allowing potentially unlisted experimental model: {model}")
+    allowed_experimental = [
+        "gemini/gemini-2.5-pro-exp-03-25",
+        "vertex_ai/gemini-2.5-pro-exp-03-25",
+    ]
+    if effective_model in allowed_experimental:
+        logger.warning(
+            f"Allowing potentially unlisted experimental model: {effective_model}"
+        )
         is_model_valid = True
     else:
-        valid_models = fuzzy_match_models(model)  # Returns list[str]
+        valid_models = fuzzy_match_models(
+            effective_model
+        )  # Validate adjusted model name
         # Check if the *exact* model name provided is in the list
         # of valid fuzzy matches.
-        is_model_valid = model in valid_models  # Direct check in list of strings
+        is_model_valid = effective_model in valid_models  # Check adjusted model name
 
     if not is_model_valid:
-        error_msg = f"Error: Model '{model}' is not recognized or available."
+        error_msg = f"Error: Model '{effective_model}' is not recognized or available."
         logger.error(error_msg)
         # Also list possible matches if the fuzzy search found any
         if valid_models:
@@ -261,7 +306,9 @@ def code_with_aider(
             logger.info("No similar models found.")
         return _format_response({"success": False, "diff": error_msg})
     else:
-        logger.info(f"Model '{model}' validated successfully (or explicitly allowed).")
+        logger.info(
+            f"Model '{effective_model}' validated successfully (or explicitly allowed)."
+        )
     # --- End: Add Model Validation ---
 
     # Check if the working directory is a git repository
@@ -295,7 +342,7 @@ def code_with_aider(
         logger.info(f"Changed directory to: {working_dir}")
 
         # Create coder
-        main_model = Model(model)
+        main_model = Model(effective_model)  # Use the potentially adjusted model name
         io = InputOutput(yes=True)  # Use yes=True to auto-accept changes
 
         # Aider's Coder.create expects paths relative to its CWD,
