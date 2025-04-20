@@ -24,6 +24,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
           running-workflow-name: Auto-merge Dependabot
+          check-name: 'CI'
           allowed-conclusions: success,skipped
 
       - name: Auto-merge PR
