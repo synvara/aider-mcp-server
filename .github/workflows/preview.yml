@@ -75,7 +75,7 @@ jobs:
             const dockerPullCmd = `docker pull ghcr.io/${repoName}:preview-pr-${prNumber}`;
             const dockerRunCmd = `docker run -p 8000:8000 ghcr.io/${repoName}:preview-pr-${prNumber}`;
 
-            const message = `## 🚀 Docker Preview Available
+            const message = `## 🐳 Docker Preview Available
 
             A preview Docker image has been built for this pull request:
 
