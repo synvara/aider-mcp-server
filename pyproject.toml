@@ -4,21 +4,66 @@ version = "0.1.0"
 description = "Model context protocol server for offloading ai coding work to Aider"
 readme = "README.md"
 authors = [
-    { name = "IndyDevDan", email = "minor7addfloortom@gmail.com" }
+    { name = "IndyDevDan", email = "minor7addfloortom@gmail.com" },
+    { name = "Lance Lewandowski", email = "llewandowski@synvara.com" } 
 ]
 requires-python = ">=3.12"
 dependencies = [
     "aider-chat>=0.81.0",
-    "boto3>=1.37.27",
+    "google-generativeai>=0.8.5",
     "mcp>=1.6.0",
     "pydantic>=2.11.2",
-    "pytest>=8.3.5",
     "rich>=14.0.0",
+]
+
+[project.optional-dependencies]
+# Development and testing dependencies
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "pre-commit>=3.0"
 ]
 
 [project.scripts]
 aider-mcp-server = "aider_mcp_server:main"
 
+[tool.ruff]
+# Common configuration for ruff (linter & formatter)
+target-version = "py39" # Target the minimum Python version for compatibility checks
+line-length = 88        # Compatible with Black's default
+
+[tool.ruff.lint]
+# Select lint rule categories:
+# E: pycodestyle Errors
+# W: pycodestyle Warnings
+# F: Pyflakes (syntax errors, undefined names)
+# I: isort (import sorting)
+# B: flake8-bugbear (potential bugs/design problems)
+# UP: pyupgrade (suggests modern syntax)
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [] # Add specific rule codes to ignore if necessary
+# Example: ignore = ["E501"] # To ignore line length errors (if line-length isn't enforced by formatter)
+
+# Configure isort integration within ruff
+[tool.ruff.lint.isort]
+known-first-party = ["template_python_vsa"] # Treat 'template_python_vsa' as a first-party module
+
+[tool.ruff.format]
+# Configuration for the formatter (similar to Black)
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.mypy]
+ignore_missing_imports = true
+# You could be more specific if needed:
+# [[tool.mypy.overrides]]
+# module = "aider.*"
+# ignore_missing_imports = true

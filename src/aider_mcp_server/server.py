@@ -1,20 +1,16 @@
 import json
-import sys
 import os
-import asyncio
 import subprocess
-import logging
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Any, Union
 
-import mcp
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
 from aider_mcp_server.atoms.logging import get_logger
-from aider_mcp_server.atoms.utils import DEFAULT_EDITOR_MODEL
 from aider_mcp_server.atoms.tools.aider_ai_code import code_with_aider
 from aider_mcp_server.atoms.tools.aider_list_models import list_models
+from aider_mcp_server.atoms.utils import DEFAULT_EDITOR_MODEL
 
 # Configure logging
 logger = get_logger(__name__)
@@ -22,7 +18,9 @@ logger = get_logger(__name__)
 # Define MCP tools
 AIDER_AI_CODE_TOOL = Tool(
     name="aider_ai_code",
-    description="Run Aider to perform AI coding tasks based on the provided prompt and files",
+    description=(
+        "Run Aider to perform AI coding tasks based on the provided prompt and files"
+    ),
     inputSchema={
         "type": "object",
         "properties": {
@@ -37,12 +35,18 @@ AIDER_AI_CODE_TOOL = Tool(
             },
             "relative_readonly_files": {
                 "type": "array",
-                "description": "LIST of relative paths to files that can be read but not edited, add files that are not editable but useful for context",
+                "description": (
+                    "LIST of relative paths to files that can be read but not "
+                    "edited, add files that are not editable but useful for context"
+                ),
                 "items": {"type": "string"},
             },
             "model": {
                 "type": "string",
-                "description": "The primary AI model Aider should use for generating code, leave blank unless model is specified in the request",
+                "description": (
+                    "The primary AI model Aider should use for generating code, "
+                    "leave blank unless model is specified in the request"
+                ),
             },
         },
         "required": ["ai_coding_prompt", "relative_editable_files"],
@@ -64,7 +68,7 @@ LIST_MODELS_TOOL = Tool(
 )
 
 
-def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
+def is_git_repository(directory: str) -> tuple[bool, Union[str, None]]:
     """
     Check if the specified directory is a git repository.
 
@@ -72,8 +76,8 @@ def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
         directory (str): The directory to check.
 
     Returns:
-        Tuple[bool, Union[str, None]]: A tuple containing a boolean indicating if it's a git repo,
-                                      and an error message if it's not.
+        tuple[bool, Union[str, None]]: A tuple containing a boolean indicating if
+            it's a git repo, and an error message if it's not.
     """
     try:
         # Make sure the directory exists
@@ -101,17 +105,18 @@ def is_git_repository(directory: str) -> Tuple[bool, Union[str, None]]:
 
 
 def process_aider_ai_code_request(
-    params: Dict[str, Any],
+    params: dict[str, Any],
     editor_model: str,
     current_working_dir: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Process an aider_ai_code request.
 
     Args:
         params (Dict[str, Any]): The request parameters.
         editor_model (str): The editor model to use.
-        current_working_dir (str): The current working directory where git repo is located.
+        current_working_dir (str): The current working directory where git repo
+            is located.
 
     Returns:
         Dict[str, Any]: The response data.
@@ -176,7 +181,7 @@ def process_aider_ai_code_request(
     }
 
 
-def process_list_models_request(params: Dict[str, Any]) -> Dict[str, Any]:
+def process_list_models_request(params: dict[str, Any]) -> dict[str, Any]:
     """
     Process a list_models request.
 
@@ -198,16 +203,17 @@ def process_list_models_request(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def handle_request(
-    request: Dict[str, Any],
+    request: dict[str, Any],
     current_working_dir: str,
     editor_model: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Handle incoming MCP requests according to the MCP protocol.
 
     Args:
         request (Dict[str, Any]): The request JSON.
-        current_working_dir (str): The current working directory. Must be a valid git repository.
+        current_working_dir (str): The current working directory. Must be a valid
+            git repository.
         editor_model (str): The editor model to use.
 
     Returns:
@@ -216,7 +222,10 @@ def handle_request(
     try:
         # Validate current_working_dir is provided and is a git repository
         if not current_working_dir:
-            error_msg = "Error: current_working_dir is required. Please provide a valid git repository path."
+            error_msg = (
+                "Error: current_working_dir is required. Please provide a valid "
+                "git repository path."
+            )
             logger.error(error_msg)
             return {"error": error_msg}
 
@@ -232,10 +241,14 @@ def handle_request(
             f"Received request: Type='{request_type}', CWD='{current_working_dir}'"
         )
 
-        # Validate that the current_working_dir is a git repository before changing to it
+        # Validate that the current_working_dir is a git repository before
+        # changing to it
         is_git_repo, error_message = is_git_repository(current_working_dir)
         if not is_git_repo:
-            error_msg = f"Error: The specified directory '{current_working_dir}' is not a valid git repository: {error_message}"
+            error_msg = (
+                f"Error: The specified directory '{current_working_dir}' is not "
+                f"a valid git repository: {error_message}"
+            )
             logger.error(error_msg)
             return {"error": error_msg}
 
@@ -267,7 +280,7 @@ def handle_request(
 
 async def serve(
     editor_model: str = DEFAULT_EDITOR_MODEL,
-    current_working_dir: str = None,
+    current_working_dir: str | None = None,
 ) -> None:
     """
     Start the MCP server following the Model Context Protocol.
@@ -277,18 +290,23 @@ async def serve(
     a 'parameters' field with the tool-specific parameters.
 
     Args:
-        editor_model (str, optional): The editor model to use. Defaults to DEFAULT_EDITOR_MODEL.
-        current_working_dir (str, required): The current working directory. Must be a valid git repository.
+        editor_model (str, optional): The editor model to use.
+            Defaults to DEFAULT_EDITOR_MODEL.
+        current_working_dir (str | None, required): The current working directory.
+            Must be a valid git repository.
 
     Raises:
         ValueError: If current_working_dir is not provided or is not a git repository.
     """
-    logger.info(f"Starting Aider MCP Server")
+    logger.info("Starting Aider MCP Server")
     logger.info(f"Editor Model: {editor_model}")
 
     # Validate current_working_dir is provided
     if not current_working_dir:
-        error_msg = "Error: current_working_dir is required. Please provide a valid git repository path."
+        error_msg = (
+            "Error: current_working_dir is required. Please provide a valid git "
+            "repository path."
+        )
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -297,73 +315,96 @@ async def serve(
     # Validate that the current_working_dir is a git repository
     is_git_repo, error_message = is_git_repository(current_working_dir)
     if not is_git_repo:
-        error_msg = f"Error: The specified directory '{current_working_dir}' is not a valid git repository: {error_message}"
+        error_msg = (
+            f"Error: The specified directory '{current_working_dir}' is not a "
+            f"valid git repository: {error_message}"
+        )
         logger.error(error_msg)
         raise ValueError(error_msg)
 
     logger.info(f"Validated git repository at: {current_working_dir}")
 
-    # Set working directory
-    logger.info(f"Setting working directory to: {current_working_dir}")
-    os.chdir(current_working_dir)
+    # Set working directory (validated above)
+    if current_working_dir:
+        logger.info(f"Setting working directory to: {current_working_dir}")
+        os.chdir(current_working_dir)
+    else:
+        # This case should ideally be prevented by earlier validation
+        # but added for robustness if validation logic changes.
+        error_msg = "Critical: current_working_dir became None before chdir."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
-    # Create the MCP server
-    server = Server("aider-mcp-server")
+    # Create the MCP server instance with type annotation and name
+    server: Server = Server(name="aider-mcp-server")
 
     @server.list_tools()
-    async def list_tools() -> List[Tool]:
+    async def list_tools() -> list[Tool]:
         """Register all available tools with the MCP server."""
         return [AIDER_AI_CODE_TOOL, LIST_MODELS_TOOL]
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         """Handle tool calls from the MCP client."""
         logger.info(f"Received Tool Call: Name='{name}'")
-        logger.info(f"Arguments: {arguments}")
+        arguments = arguments or {}
 
-        try:
-            if name == "aider_ai_code":
-                logger.info(f"Processing 'aider_ai_code' tool call...")
-                result = process_aider_ai_code_request(
-                    arguments, editor_model, current_working_dir
+        # Handle based on tool name
+        if name == "aider_ai_code":
+            try:
+                response_data = process_aider_ai_code_request(
+                    arguments,
+                    editor_model=editor_model,
+                    current_working_dir=current_working_dir,
                 )
-                return [TextContent(type="text", text=json.dumps(result))]
-
-            elif name == "list_models":
-                logger.info(f"Processing 'list_models' tool call...")
-                result = process_list_models_request(arguments)
-                return [TextContent(type="text", text=json.dumps(result))]
-
-            else:
-                logger.warning(f"Warning: Received call for unknown tool: {name}")
+                diff_content = response_data.get(
+                    "diff", "No diff information provided."
+                )
+                status_msg = "Success" if response_data.get("success") else "Failure"
+                full_content = f"{status_msg}\n\nDiff:\n```diff\n{diff_content}\n```"
+                return [TextContent(type="text", text=full_content)]
+            except Exception as e:
+                logger.error(f"Error processing tool '{name}': {str(e)}", exc_info=True)
                 return [
                     TextContent(
-                        type="text", text=json.dumps({"error": f"Unknown tool: {name}"})
+                        type="text", text=f"Error processing tool '{name}': {str(e)}"
                     )
                 ]
+        elif name == "list_models":
+            try:
+                response_data = process_list_models_request(arguments)
+                models_list = response_data.get("models", [])
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Available models:\n{json.dumps(models_list, indent=2)}",
+                    )
+                ]
+            except Exception as e:
+                logger.error(f"Error processing tool '{name}': {str(e)}", exc_info=True)
+                return [
+                    TextContent(
+                        type="text", text=f"Error processing tool '{name}': {str(e)}"
+                    )
+                ]
+        else:
+            logger.warning(f"Received call for unknown tool: {name}")
+            return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
-        except Exception as e:
-            logger.exception(f"Error: Exception during tool call '{name}': {e}")
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {"error": f"Error processing tool {name}: {str(e)}"}
-                    ),
-                )
-            ]
-
-    # Initialize and run the server
+    # Start the server using stdio with async with
+    logger.info(
+        f"Starting server listener with editor_model='{editor_model}' and "
+        f"cwd='{current_working_dir}'"
+    )
     try:
+        # Create initialization options (needed for server.run)
         options = server.create_initialization_options()
-        logger.info("Initializing stdio server connection...")
-        async with stdio_server() as (read_stream, write_stream):
-            logger.info("Server running. Waiting for requests...")
-            await server.run(read_stream, write_stream, options, raise_exceptions=True)
+        async with stdio_server() as (reader, writer):
+            logger.info("Server connection established. Waiting for requests...")
+            # Pass options to server.run
+            await server.run(reader, writer, initialization_options=options)
+            logger.info("Server run loop finished.")
     except Exception as e:
-        logger.exception(
-            f"Critical Error: Server stopped due to unhandled exception: {e}"
-        )
-        raise
+        logger.exception(f"Server stopped due to exception: {e}")
     finally:
         logger.info("Aider MCP Server shutting down.")

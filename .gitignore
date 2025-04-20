@@ -68,3 +68,6 @@ focus_output/
 # Log files
 logs/
 *.log
+
+# Test Artifacts
+*.xml
