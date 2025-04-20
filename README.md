@@ -6,27 +6,27 @@
 
 This server allows Claude Code to offload AI coding tasks to Aider, the best open source AI coding assistant. By delegating certain coding tasks to Aider, we can reduce costs, gain control over our coding model and operate Claude Code in a more orchestrative way to review and revise code.
 
-## Setup
+## Setup using Docker
 
-0. Clone the repository:
-
-```bash
-git clone https://github.com/disler/aider-mcp-server.git
-```
-
-1. Install dependencies:
+The Aider MCP Server is distributed as a Docker image for simplified deployment:
 
 ```bash
-uv sync
+# Pull the latest image
+docker pull synvara/aider-mcp-server:latest
+
+# Run the container with your project mounted as a volume
+docker run -v /path/to/your/project:/workspace \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key_here \
+  synvara/aider-mcp-server:latest \
+  --editor-model "gpt-4o" \
+  --current-working-dir "/workspace"
 ```
 
-2. Create your environment file:
+### Environment Variables
 
-```bash
-cp .env.sample .env
-```
-
-3. Configure your API keys in the `.env` file (or use the mcpServers "env" section) to have the api key needed for the model you want to use in aider:
+Configure your API keys as environment variables when running the Docker container:
 
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -35,7 +35,9 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ...see .env.sample for more
 ```
 
-4. Copy and fill out the the `.mcp.json` into the root of your project and update the `--directory` to point to this project's root directory and the `--current-working-dir` to point to the root of your project.
+### Configuration in .mcp.json
+
+Copy and fill out the `.mcp.json` into the root of your project:
 
 ```json
 {
@@ -99,10 +101,13 @@ Note: The AI coding tests require a valid API key for the Gemini model. Make sur
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory "<path to the aider mcp server project>" \
-  run aider-mcp-server \
+  docker run -v /path/to/your/project:/workspace \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key_here \
+  synvara/aider-mcp-server:latest \
   --editor-model "gemini/gemini-2.5-pro-exp-03-25" \
-  --current-working-dir "<path to your project>"
+  --current-working-dir "/workspace"
 ```
 
 ### Add with `gemini-2.5-pro-preview-03-25`
@@ -110,10 +115,13 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory "<path to the aider mcp server project>" \
-  run aider-mcp-server \
+  docker run -v /path/to/your/project:/workspace \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key_here \
+  synvara/aider-mcp-server:latest \
   --editor-model "gemini/gemini-2.5-pro-preview-03-25" \
-  --current-working-dir "<path to your project>"
+  --current-working-dir "/workspace"
 ```
 
 ### Add with `quasar-alpha`
@@ -121,10 +129,13 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory "<path to the aider mcp server project>" \
-  run aider-mcp-server \
+  docker run -v /path/to/your/project:/workspace \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key_here \
+  synvara/aider-mcp-server:latest \
   --editor-model "openrouter/openrouter/quasar-alpha" \
-  --current-working-dir "<path to your project>"
+  --current-working-dir "/workspace"
 ```
 
 ### Add with `llama4-maverick-instruct-basic`
@@ -132,10 +143,13 @@ claude mcp add aider-mcp-server -s local \
 ```bash
 claude mcp add aider-mcp-server -s local \
   -- \
-  uv --directory "<path to the aider mcp server project>" \
-  run aider-mcp-server \
+  docker run -v /path/to/your/project:/workspace \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key_here \
+  synvara/aider-mcp-server:latest \
   --editor-model "fireworks_ai/accounts/fireworks/models/llama4-maverick-instruct-basic" \
-  --current-working-dir "<path to your project>"
+  --current-working-dir "/workspace"
 ```
 
 ### Important Setup Steps for Docker
@@ -311,6 +325,7 @@ The project is organized into the following main directories and files:
 ├── README.md                 # This file
 ├── specs                     # Specification documents
 │   └── init-aider-mcp-exp.md
+├── Dockerfile                # For building the Docker image
 ├── src                       # Source code directory
 │   └── aider_mcp_server      # Main package for the server
 │       ├── __init__.py       # Package initializer
