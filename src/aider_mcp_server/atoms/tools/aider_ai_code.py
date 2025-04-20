@@ -248,7 +248,8 @@ def code_with_aider(
             # Consider unsetting if issues persist: del os.environ["GOOGLE_API_KEY"]
     else:
         logger.info(
-            "Local environment detected. Assuming API key (e.g., GEMINI_API_KEY) is available."
+            "Local environment detected. Assuming API key "
+            "(e.g., GEMINI_API_KEY) is available."
         )
         # Use the model name directly, litellm should handle API key auth
         logger.info(f"Using model name for API key auth: {effective_model}")

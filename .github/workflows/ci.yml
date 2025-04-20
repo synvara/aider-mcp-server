@@ -85,11 +85,12 @@ jobs:
 
       # Authenticate to Google Cloud using Workload Identity Federation
       - name: Authenticate to Google Cloud
-        id: "auth"
         uses: "google-github-actions/auth@v2"
         with:
           workload_identity_provider: "projects/837411258846/locations/global/workloadIdentityPools/github-pool/providers/github-provider" # Your Provider ID
-          service_account: "github-actions-sa@github-actions-457316.iam.gserviceaccount.com" # Your Service Account Email
+          service_account: "github-actions-sa@github-actions-457316.iam.gserviceaccount.com"
+          project_id: "github-actions-457316"
+          create_credentials_file: true
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -102,10 +103,6 @@ jobs:
           echo “CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE}”
           gcloud auth list
           gcloud config list
-
-      - name: Verify Identity Token
-        run: |
-          gcloud auth print-identity-token | xargs -I {} curl "https://oauth2.googleapis.com/tokeninfo?id_token={}"
 
       - name: Debug Environment
         run: |
